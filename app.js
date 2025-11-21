@@ -102,17 +102,12 @@ function render() {
     title.className = "title";
     title.textContent = clip.title;
 
-    const meta = document.createElement("p");
-    meta.className = "meta";
-    meta.textContent = clip.size ? formatSize(clip.size) : clip.file;
-
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = "Play";
     button.addEventListener("click", () => handlePlay(card, clip));
 
     card.appendChild(title);
-    card.appendChild(meta);
     card.appendChild(button);
     grid.appendChild(card);
 
@@ -203,14 +198,6 @@ function stopCurrent() {
   document.querySelectorAll(".card.playing").forEach((card) => {
     setPlaying(card, false);
   });
-}
-
-function formatSize(bytes) {
-  if (!bytes || Number.isNaN(bytes)) return "";
-  const units = ["B", "KB", "MB", "GB"];
-  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / 1024 ** exponent;
-  return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
 
 function reorderClips(sourceFile, targetFile) {
