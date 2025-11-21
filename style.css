@@ -161,6 +161,7 @@ code {
   gap: 12px;
   box-shadow: var(--shadow);
   transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+  height: 100%;
 }
 
 .card:hover {
@@ -179,6 +180,8 @@ code {
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
   box-shadow: 0 10px 24px rgba(255, 122, 61, 0.4);
+  margin-top: auto;
+  width: 100%;
 }
 
 .card button:hover {
