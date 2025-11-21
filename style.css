@@ -1,0 +1,231 @@
+:root {
+  --bg: #071c2f;
+  --bg-2: #0f2f44;
+  --card: rgba(255, 255, 255, 0.08);
+  --card-hover: rgba(255, 255, 255, 0.15);
+  --accent: #ff7a3d;
+  --text: #e8f0ff;
+  --muted: #b7c9e2;
+  --border: rgba(255, 255, 255, 0.1);
+  --shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 20% 20%, #0d344a, var(--bg)) fixed;
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  padding: 32px;
+}
+
+.app {
+  width: min(1100px, 100%);
+}
+
+code {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 6px;
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  background: linear-gradient(135deg, var(--bg-2), var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 28px 32px;
+  box-shadow: var(--shadow);
+}
+
+.hero h1 {
+  margin: 8px 0;
+  font-size: clamp(26px, 4vw, 36px);
+}
+
+.hero .lede {
+  margin: 0;
+  color: var(--muted);
+  max-width: 620px;
+}
+
+.eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  margin: 0;
+}
+
+.cta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #0c1a24;
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: 0 10px 25px rgba(255, 122, 61, 0.35);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.stat {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  padding: 16px;
+  border-radius: 16px;
+  min-width: 180px;
+  align-self: center;
+}
+
+.stat .label {
+  margin: 0;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.stat .value {
+  margin: 6px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.controls {
+  margin: 24px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#search {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 16px;
+}
+
+#search:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 16px;
+  border-radius: 16px;
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow);
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  background: var(--card-hover);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.card button {
+  background: var(--accent);
+  border: none;
+  color: #0c1a24;
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  box-shadow: 0 10px 24px rgba(255, 122, 61, 0.4);
+}
+
+.card button:hover {
+  transform: translateY(-1px);
+}
+
+.card button:active {
+  transform: translateY(0);
+}
+
+.card .title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.card .meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.card.playing {
+  border-color: var(--accent);
+  box-shadow: 0 16px 40px rgba(255, 122, 61, 0.2);
+}
+
+.empty {
+  display: none;
+  margin: 32px 0;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+}
+
+.empty.visible {
+  display: block;
+}
+
+@media (max-width: 720px) {
+  body {
+    padding: 20px;
+  }
+
+  .hero {
+    flex-direction: column;
+  }
+}

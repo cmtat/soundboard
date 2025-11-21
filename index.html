@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soundboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Soundboard</p>
+        <h1>Trigger any clip in a single tap.</h1>
+        <p class="lede">Drop audio files in <code>audio/</code>, update the manifest, and this page will auto-list every clip.</p>
+        <div class="cta-row">
+          <a class="pill" href="https://github.com/" target="_blank" rel="noreferrer">Host on GitHub Pages</a>
+          <span class="hint">Add or update clips without changing the UI.</span>
+        </div>
+      </div>
+      <div class="stat">
+        <p class="label">Now playing</p>
+        <p id="now-playing" class="value">—</p>
+      </div>
+    </header>
+
+    <section class="controls">
+      <input id="search" type="search" placeholder="Search clips…" autocomplete="off" aria-label="Search clips">
+      <div id="status" class="status">Loading clips…</div>
+    </section>
+
+    <section id="grid" class="grid" aria-live="polite"></section>
+    <div id="empty-state" class="empty">
+      <p>No clips yet. Add audio files into <code>audio/</code> and run <code>node scripts/generate-manifest.js</code>.</p>
+    </div>
+  </div>
+
+  <noscript>Your browser needs JavaScript enabled to run this soundboard.</noscript>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
