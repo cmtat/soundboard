@@ -5,12 +5,26 @@ const searchInput = document.getElementById("search");
 const statusEl = document.getElementById("status");
 const nowPlayingEl = document.getElementById("now-playing");
 const emptyState = document.getElementById("empty-state");
+const player = document.getElementById("player");
+const playerTitle = document.getElementById("player-title");
+const playerTime = document.getElementById("player-time");
+const playerSeek = document.getElementById("player-seek");
 
 let clips = [];
 let filteredClips = [];
 let currentAudio = null;
 let currentId = null;
 let draggingFile = null;
+let audioContext = null;
+let gainNode = null;
+let compressor = null;
+let currentSourceNode = null;
+
+playerSeek.addEventListener("input", () => {
+  if (!currentAudio || Number.isNaN(currentAudio.duration)) return;
+  const pct = Number(playerSeek.value) / 100;
+  currentAudio.currentTime = pct * currentAudio.duration;
+});
 
 const humanize = (fileName) =>
   fileName
@@ -87,6 +101,7 @@ function render() {
   if (!filteredClips.length) {
     emptyState.classList.add("visible");
     nowPlayingEl.textContent = "—";
+    hidePlayer();
     return;
   }
 
@@ -151,12 +166,19 @@ function handlePlay(card, clip) {
   stopCurrent();
 
   currentAudio = new Audio(clipPath);
+  const { context, gain, comp } = ensureAudioGraph();
+  cleanupSource();
+  currentSourceNode = context.createMediaElementSource(currentAudio);
+  currentSourceNode.connect(gain).connect(comp).connect(context.destination);
   currentId = clip.file;
   nowPlayingEl.textContent = clip.title;
+  playerTitle.textContent = clip.title;
   setPlaying(card, true);
+  showPlayer();
 
   currentAudio.addEventListener("ended", () => {
     setPlaying(card, false);
+    resetPlayer();
     nowPlayingEl.textContent = "—";
     currentId = null;
   });
@@ -164,9 +186,13 @@ function handlePlay(card, clip) {
   currentAudio.addEventListener("error", () => {
     setStatus(`Could not play ${clip.file}`);
     setPlaying(card, false);
+    resetPlayer();
     nowPlayingEl.textContent = "—";
     currentId = null;
   });
+
+  currentAudio.addEventListener("loadedmetadata", updatePlayerTime);
+  currentAudio.addEventListener("timeupdate", updatePlayerTime);
 
   currentAudio.play();
 }
@@ -194,10 +220,12 @@ function stopCurrent() {
     currentAudio.pause();
     currentAudio.currentTime = 0;
   }
+  cleanupSource();
   currentId = null;
   document.querySelectorAll(".card.playing").forEach((card) => {
     setPlaying(card, false);
   });
+  resetPlayer();
 }
 
 function reorderClips(sourceFile, targetFile) {
@@ -223,3 +251,76 @@ searchInput.addEventListener("input", () => {
 });
 
 loadManifest();
+
+function ensureAudioGraph() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  if (!gainNode) {
+    gainNode = audioContext.createGain();
+    gainNode.gain.value = 0.9; // slight trim to avoid clipping when compressing
+  }
+
+  if (!compressor) {
+    compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.knee.value = 20;
+    compressor.ratio.value = 8;
+    compressor.attack.value = 0.005;
+    compressor.release.value = 0.08;
+  }
+
+  return { context: audioContext, gain: gainNode, comp: compressor };
+}
+
+function updatePlayerTime() {
+  if (!currentAudio || Number.isNaN(currentAudio.duration)) {
+    playerTime.textContent = "00:00 / 00:00";
+    playerSeek.value = 0;
+    playerSeek.disabled = true;
+    return;
+  }
+
+  const duration = currentAudio.duration;
+  const current = currentAudio.currentTime;
+  playerTime.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+  playerSeek.value = Math.min(100, (current / duration) * 100);
+  playerSeek.disabled = false;
+}
+
+function formatTime(time) {
+  if (!Number.isFinite(time)) return "00:00";
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function showPlayer() {
+  player.hidden = false;
+}
+
+function hidePlayer() {
+  player.hidden = true;
+}
+
+function resetPlayer() {
+  playerSeek.value = 0;
+  playerSeek.disabled = true;
+  playerTime.textContent = "00:00 / 00:00";
+  if (!currentId) {
+    playerTitle.textContent = "—";
+    hidePlayer();
+  }
+}
+
+function cleanupSource() {
+  if (currentSourceNode) {
+    try {
+      currentSourceNode.disconnect();
+    } catch {
+      // ignore
+    }
+    currentSourceNode = null;
+  }
+}
