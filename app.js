@@ -1,4 +1,5 @@
 const manifestPath = "audio/manifest.json";
+const orderStorageKey = "soundboardOrder";
 const grid = document.getElementById("grid");
 const searchInput = document.getElementById("search");
 const statusEl = document.getElementById("status");
@@ -9,6 +10,7 @@ let clips = [];
 let filteredClips = [];
 let currentAudio = null;
 let currentId = null;
+let draggingFile = null;
 
 const humanize = (fileName) =>
   fileName
@@ -23,13 +25,14 @@ async function loadManifest() {
       throw new Error(`Manifest missing (${response.status})`);
     }
     const data = await response.json();
-    clips = (data.clips || []).map((clip) => ({
-      file: clip.file,
-      title: clip.title || humanize(clip.file),
-      size: clip.sizeBytes,
-    }));
-    filteredClips = clips;
-    render();
+    clips = applySavedOrder(
+      (data.clips || []).map((clip) => ({
+        file: clip.file,
+        title: clip.title || humanize(clip.file),
+        size: clip.sizeBytes,
+      }))
+    );
+    applySearch("");
     setStatus(clips.length ? `Loaded ${clips.length} clip(s)` : "No clips loaded");
   } catch (error) {
     setStatus(
@@ -41,6 +44,42 @@ async function loadManifest() {
 
 function setStatus(message) {
   statusEl.textContent = message;
+}
+
+function applySavedOrder(list) {
+  const saved = loadSavedOrder();
+  if (!saved || !saved.length) return list;
+
+  const map = new Map(list.map((clip) => [clip.file, clip]));
+  const ordered = [];
+
+  saved.forEach((file) => {
+    if (map.has(file)) {
+      ordered.push(map.get(file));
+      map.delete(file);
+    }
+  });
+
+  // Any new files not seen before get appended in alphabetical order.
+  const remaining = Array.from(map.values()).sort((a, b) => a.file.localeCompare(b.file));
+  return ordered.concat(remaining);
+}
+
+function loadSavedOrder() {
+  try {
+    const raw = localStorage.getItem(orderStorageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistOrder(list) {
+  try {
+    localStorage.setItem(orderStorageKey, JSON.stringify(list.map((clip) => clip.file)));
+  } catch {
+    // ignore if storage is unavailable (e.g., private mode)
+  }
 }
 
 function render() {
@@ -56,6 +95,8 @@ function render() {
     const card = document.createElement("article");
     card.className = "card";
     card.dataset.clipId = `${index}`;
+    card.dataset.file = clip.file;
+    card.setAttribute("draggable", "true");
 
     const title = document.createElement("p");
     title.className = "title";
@@ -74,6 +115,28 @@ function render() {
     card.appendChild(meta);
     card.appendChild(button);
     grid.appendChild(card);
+
+    card.addEventListener("dragstart", (event) => {
+      draggingFile = clip.file;
+      event.dataTransfer.effectAllowed = "move";
+      card.classList.add("dragging");
+    });
+
+    card.addEventListener("dragend", () => {
+      draggingFile = null;
+      card.classList.remove("dragging");
+    });
+
+    card.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+    });
+
+    card.addEventListener("drop", (event) => {
+      event.preventDefault();
+      if (!draggingFile || draggingFile === clip.file) return;
+      reorderClips(draggingFile, clip.file);
+    });
   });
 }
 
@@ -150,11 +213,26 @@ function formatSize(bytes) {
   return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
 
-searchInput.addEventListener("input", () => {
-  const term = searchInput.value.trim().toLowerCase();
-  filteredClips = clips.filter((clip) => clip.title.toLowerCase().includes(term));
+function reorderClips(sourceFile, targetFile) {
+  const fromIndex = clips.findIndex((clip) => clip.file === sourceFile);
+  const toIndex = clips.findIndex((clip) => clip.file === targetFile);
+  if (fromIndex === -1 || toIndex === -1) return;
+
+  const [moved] = clips.splice(fromIndex, 1);
+  clips.splice(toIndex, 0, moved);
+  persistOrder(clips);
+  applySearch(searchInput.value);
+}
+
+function applySearch(term) {
+  const normalized = term.trim().toLowerCase();
+  filteredClips = clips.filter((clip) => clip.title.toLowerCase().includes(normalized));
   render();
   setStatus(`${filteredClips.length} match${filteredClips.length === 1 ? "" : "es"}`);
+}
+
+searchInput.addEventListener("input", () => {
+  applySearch(searchInput.value);
 });
 
 loadManifest();
