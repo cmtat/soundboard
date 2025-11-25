@@ -7,6 +7,7 @@ import {
   Permission,
   Role,
   Query,
+  OAuthProvider,
 } from "./appwrite.js";
 
 client.ping().catch((error) => {
@@ -46,6 +47,11 @@ const humanize = (fileName) =>
 
 function setStatus(message) {
   statusEl.textContent = message;
+}
+
+function setAuthBlockedMessage() {
+  setStatus("Browser blocked the session cookie. Allow cookies for nyc.cloud.appwrite.io or use a custom domain.");
+  userSubstatus.textContent = "Enable cookies for Appwrite or switch browsers.";
 }
 
 function setUserStatus(user) {
@@ -259,11 +265,14 @@ async function ensureSession(interactive = false) {
     setUserStatus(currentUser);
     return currentUser;
   } catch (error) {
+    if (error?.code === 401) {
+      setAuthBlockedMessage();
+    }
     if (!interactive) {
       setUserStatus(null);
       return null;
     }
-    await account.createOAuth2Session("google", window.location.origin, window.location.origin);
+    await account.createOAuth2Session(OAuthProvider.Google, window.location.origin, window.location.origin);
     return null;
   }
 }
@@ -293,7 +302,11 @@ async function loadFromAppwrite() {
     applySearch("");
     setStatus(clips.length ? `Loaded ${clips.length} clip(s)` : "No clips yet. Upload one to get started.");
   } catch (error) {
-    setStatus(`Could not load sounds (${error.message})`);
+    if (error?.code === 401) {
+      setAuthBlockedMessage();
+    } else {
+      setStatus(`Could not load sounds (${error.message})`);
+    }
     render();
   }
 }
@@ -305,7 +318,7 @@ async function handleUpload() {
     return;
   }
   if (!currentUser) {
-    setStatus("Sign in first to upload");
+    setStatus("Sign in first to upload (allow cookies for nyc.cloud.appwrite.io)");
     return;
   }
   uploadButton.disabled = true;
