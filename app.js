@@ -272,7 +272,12 @@ async function ensureSession(interactive = false) {
       setUserStatus(null);
       return null;
     }
-    await account.createOAuth2Session(OAuthProvider.Google, window.location.origin, window.location.origin);
+    await account.createOAuth2Session({
+      provider: OAuthProvider.Google,
+      success: window.location.origin,
+      failure: window.location.origin,
+      scopes: [],
+    });
     return null;
   }
 }
