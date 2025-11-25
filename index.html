@@ -42,9 +42,12 @@
       <div id="status" class="status">Loading clips…</div>
     </section>
 
-    <section class="controls">
-      <input id="file-input" type="file" accept="audio/*">
-      <button id="upload" type="button">Upload</button>
+    <section class="controls upload-controls">
+      <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Drop audio files or click to browse">
+        <p>Drag & drop audio here or click to browse</p>
+        <input id="file-input" type="file" accept="audio/*" aria-hidden="true">
+      </div>
+      <button id="upload" type="button" class="btn primary">Upload</button>
     </section>
 
     <section id="grid" class="grid" aria-live="polite"></section>

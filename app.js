@@ -27,6 +27,7 @@ const signInButton = document.getElementById("sign-in");
 const signOutButton = document.getElementById("sign-out");
 const fileInput = document.getElementById("file-input");
 const uploadButton = document.getElementById("upload");
+const dropZone = document.getElementById("drop-zone");
 const userStatus = document.getElementById("user-status");
 const userSubstatus = document.getElementById("user-substatus");
 const userAvatar = document.getElementById("user-avatar");
@@ -61,6 +62,8 @@ function setUserStatus(user) {
     userSubstatus.textContent = "Uploads and library unlocked.";
     signInButton.classList.add("hidden");
     signOutButton.classList.remove("hidden");
+    dropZone.classList.remove("disabled");
+    dropZone.setAttribute("aria-disabled", "false");
     const initials = label
       .split(" ")
       .map((part) => part[0])
@@ -78,6 +81,8 @@ function setUserStatus(user) {
     signInButton.classList.remove("hidden");
     signOutButton.classList.add("hidden");
     userAvatar.textContent = "SB";
+    dropZone.classList.add("disabled");
+    dropZone.setAttribute("aria-disabled", "true");
     controls.forEach((el) => {
       el.disabled = true;
     });
@@ -317,10 +322,14 @@ async function loadFromAppwrite() {
   }
 }
 
-async function handleUpload() {
-  const file = fileInput.files?.[0];
+async function handleUpload(droppedFile = null) {
+  const file = droppedFile || fileInput.files?.[0];
   if (!file) {
     setStatus("Select an audio file to upload");
+    return;
+  }
+  if (!file.type.startsWith("audio/")) {
+    setStatus("Only audio files are accepted");
     return;
   }
   if (!currentUser) {
@@ -380,6 +389,42 @@ signOutButton.addEventListener("click", async () => {
 });
 
 uploadButton.addEventListener("click", handleUpload);
+
+dropZone.addEventListener("click", () => {
+  if (dropZone.classList.contains("disabled")) return;
+  fileInput.click();
+});
+
+dropZone.addEventListener("keydown", (event) => {
+  if (dropZone.classList.contains("disabled")) return;
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    fileInput.click();
+  }
+});
+
+["dragenter", "dragover"].forEach((eventName) => {
+  dropZone.addEventListener(eventName, (event) => {
+    if (dropZone.classList.contains("disabled")) return;
+    event.preventDefault();
+    dropZone.classList.add("dragover");
+  });
+});
+
+["dragleave", "drop"].forEach((eventName) => {
+  dropZone.addEventListener(eventName, (event) => {
+    if (dropZone.classList.contains("disabled")) return;
+    event.preventDefault();
+    dropZone.classList.remove("dragover");
+  });
+});
+
+dropZone.addEventListener("drop", (event) => {
+  if (dropZone.classList.contains("disabled")) return;
+  const file = event.dataTransfer?.files?.[0];
+  if (!file) return;
+  handleUpload(file);
+});
 
 setUserStatus(null);
 loadFromAppwrite();

@@ -215,6 +215,10 @@ code {
   flex-wrap: wrap;
 }
 
+.upload-controls {
+  align-items: stretch;
+}
+
 #search {
   flex: 1;
   padding: 12px 14px;
@@ -233,6 +237,43 @@ code {
 .status {
   color: var(--muted);
   font-size: 14px;
+}
+
+.drop-zone {
+  flex: 1;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.drop-zone p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.drop-zone input {
+  display: none;
+}
+
+.drop-zone:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(255, 122, 61, 0.08);
+}
+
+.drop-zone.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .grid {
