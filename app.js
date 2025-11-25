@@ -23,8 +23,10 @@ const statusEl = document.getElementById("status");
 const nowPlayingEl = document.getElementById("now-playing");
 const emptyState = document.getElementById("empty-state");
 const signInButton = document.getElementById("sign-in");
+const signOutButton = document.getElementById("sign-out");
 const fileInput = document.getElementById("file-input");
 const uploadButton = document.getElementById("upload");
+const userStatus = document.getElementById("user-status");
 
 let clips = [];
 let filteredClips = [];
@@ -41,6 +43,16 @@ const humanize = (fileName) =>
 
 function setStatus(message) {
   statusEl.textContent = message;
+}
+
+function setUserStatus(user) {
+  if (user) {
+    userStatus.textContent = `Signed in as ${user.email || user.name || user.$id}`;
+    signInButton.textContent = "Re-auth Google";
+  } else {
+    userStatus.textContent = "Not signed in";
+    signInButton.textContent = "Sign in with Google";
+  }
 }
 
 function applySavedOrder(list) {
@@ -222,10 +234,13 @@ searchInput.addEventListener("input", () => {
 async function ensureSession(interactive = false) {
   try {
     currentUser = await account.get();
-    signInButton.textContent = `Signed in as ${currentUser.email}`;
+    setUserStatus(currentUser);
     return currentUser;
   } catch (error) {
-    if (!interactive) return null;
+    if (!interactive) {
+      setUserStatus(null);
+      return null;
+    }
     await account.createOAuth2Session("google", window.location.origin, window.location.origin);
     return null;
   }
@@ -298,9 +313,24 @@ async function handleUpload() {
 }
 
 signInButton.addEventListener("click", () => {
-  ensureSession(true);
+  ensureSession(true).then(() => loadFromAppwrite());
+});
+
+signOutButton.addEventListener("click", async () => {
+  try {
+    await account.deleteSession("current");
+    currentUser = null;
+    setUserStatus(null);
+    clips = [];
+    filteredClips = [];
+    render();
+    setStatus("Signed out");
+  } catch (error) {
+    setStatus(`Sign out failed (${error.message})`);
+  }
 });
 
 uploadButton.addEventListener("click", handleUpload);
 
+setUserStatus(null);
 loadFromAppwrite();
