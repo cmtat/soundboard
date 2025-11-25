@@ -59,7 +59,7 @@ function setUserStatus(user) {
     const label = user.name || user.email || user.$id;
     userStatus.textContent = label;
     userSubstatus.textContent = "Uploads and library unlocked.";
-    signInButton.textContent = "Re-auth Google";
+    signInButton.classList.add("hidden");
     signOutButton.classList.remove("hidden");
     const initials = label
       .split(" ")
@@ -75,6 +75,7 @@ function setUserStatus(user) {
     userStatus.textContent = "Not signed in";
     userSubstatus.textContent = "Sign in to upload your sounds.";
     signInButton.textContent = "Sign in with Google";
+    signInButton.classList.remove("hidden");
     signOutButton.classList.add("hidden");
     userAvatar.textContent = "SB";
     controls.forEach((el) => {
