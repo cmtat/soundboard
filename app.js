@@ -1,3 +1,9 @@
+import { client } from "./appwrite.js";
+
+client.ping().catch((error) => {
+  console.warn("Appwrite ping failed", error);
+});
+
 const manifestPath = "audio/manifest.json";
 const orderStorageKey = "soundboardOrder";
 const grid = document.getElementById("grid");
