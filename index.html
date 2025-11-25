@@ -32,6 +32,12 @@
       <div id="status" class="status">Loading clips…</div>
     </section>
 
+    <section class="controls">
+      <button id="sign-in" type="button">Sign in with Google</button>
+      <input id="file-input" type="file" accept="audio/*">
+      <button id="upload" type="button">Upload</button>
+    </section>
+
     <section id="grid" class="grid" aria-live="polite"></section>
     <div id="empty-state" class="empty">
       <p>No clips yet. Add audio files into <code>audio/</code> and run <code>node scripts/generate-manifest.js</code>.</p>

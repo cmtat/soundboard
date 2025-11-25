@@ -1,52 +1,43 @@
-import { client } from "./appwrite.js";
+import {
+  client,
+  account,
+  databases,
+  storage,
+  ID,
+  Permission,
+  Role,
+  Query,
+} from "./appwrite.js";
 
 client.ping().catch((error) => {
   console.warn("Appwrite ping failed", error);
 });
 
-const manifestPath = "audio/manifest.json";
+const DB_ID = "soundboard";
+const TABLE_ID = "sounds";
+const BUCKET_ID = "sounds";
 const orderStorageKey = "soundboardOrder";
 const grid = document.getElementById("grid");
 const searchInput = document.getElementById("search");
 const statusEl = document.getElementById("status");
 const nowPlayingEl = document.getElementById("now-playing");
 const emptyState = document.getElementById("empty-state");
+const signInButton = document.getElementById("sign-in");
+const fileInput = document.getElementById("file-input");
+const uploadButton = document.getElementById("upload");
 
 let clips = [];
 let filteredClips = [];
 let currentAudio = null;
 let currentId = null;
 let draggingFile = null;
+let currentUser = null;
 
 const humanize = (fileName) =>
   fileName
     .replace(/\.[^/.]+$/, "")
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
-
-async function loadManifest() {
-  try {
-    const response = await fetch(manifestPath, { cache: "no-cache" });
-    if (!response.ok) {
-      throw new Error(`Manifest missing (${response.status})`);
-    }
-    const data = await response.json();
-    clips = applySavedOrder(
-      (data.clips || []).map((clip) => ({
-        file: clip.file,
-        title: clip.title || humanize(clip.file),
-        size: clip.sizeBytes,
-      }))
-    );
-    applySearch("");
-    setStatus(clips.length ? `Loaded ${clips.length} clip(s)` : "No clips loaded");
-  } catch (error) {
-    setStatus(
-      `Could not load manifest. Make sure audio files exist and run node scripts/generate-manifest.js (${error.message}).`
-    );
-    render();
-  }
-}
 
 function setStatus(message) {
   statusEl.textContent = message;
@@ -56,18 +47,18 @@ function applySavedOrder(list) {
   const saved = loadSavedOrder();
   if (!saved || !saved.length) return list;
 
-  const map = new Map(list.map((clip) => [clip.file, clip]));
+  const map = new Map(list.map((clip) => [clip.id, clip]));
   const ordered = [];
 
-  saved.forEach((file) => {
-    if (map.has(file)) {
-      ordered.push(map.get(file));
-      map.delete(file);
+  saved.forEach((id) => {
+    if (map.has(id)) {
+      ordered.push(map.get(id));
+      map.delete(id);
     }
   });
 
   // Any new files not seen before get appended in alphabetical order.
-  const remaining = Array.from(map.values()).sort((a, b) => a.file.localeCompare(b.file));
+  const remaining = Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
   return ordered.concat(remaining);
 }
 
@@ -82,7 +73,7 @@ function loadSavedOrder() {
 
 function persistOrder(list) {
   try {
-    localStorage.setItem(orderStorageKey, JSON.stringify(list.map((clip) => clip.file)));
+    localStorage.setItem(orderStorageKey, JSON.stringify(list.map((clip) => clip.id)));
   } catch {
     // ignore if storage is unavailable (e.g., private mode)
   }
@@ -101,7 +92,7 @@ function render() {
     const card = document.createElement("article");
     card.className = "card";
     card.dataset.clipId = `${index}`;
-    card.dataset.file = clip.file;
+    card.dataset.file = clip.id;
     card.setAttribute("draggable", "true");
 
     const title = document.createElement("p");
@@ -118,7 +109,7 @@ function render() {
     grid.appendChild(card);
 
     card.addEventListener("dragstart", (event) => {
-      draggingFile = clip.file;
+      draggingFile = clip.id;
       event.dataTransfer.effectAllowed = "move";
       card.classList.add("dragging");
     });
@@ -135,16 +126,16 @@ function render() {
 
     card.addEventListener("drop", (event) => {
       event.preventDefault();
-      if (!draggingFile || draggingFile === clip.file) return;
-      reorderClips(draggingFile, clip.file);
+      if (!draggingFile || draggingFile === clip.id) return;
+      reorderClips(draggingFile, clip.id);
     });
   });
 }
 
 function handlePlay(card, clip) {
-  const clipPath = `audio/${clip.file}`;
+  const clipPath = clip.url;
 
-  if (currentId === clip.file && currentAudio) {
+  if (currentId === clip.id && currentAudio) {
     currentAudio.pause();
     currentAudio.currentTime = 0;
     currentId = null;
@@ -157,7 +148,7 @@ function handlePlay(card, clip) {
   stopCurrent();
 
   currentAudio = new Audio(clipPath);
-  currentId = clip.file;
+  currentId = clip.id;
   nowPlayingEl.textContent = clip.title;
   setPlaying(card, true);
 
@@ -168,7 +159,7 @@ function handlePlay(card, clip) {
   });
 
   currentAudio.addEventListener("error", () => {
-    setStatus(`Could not play ${clip.file}`);
+    setStatus(`Could not play ${clip.title}`);
     setPlaying(card, false);
     nowPlayingEl.textContent = "—";
     currentId = null;
@@ -207,8 +198,8 @@ function stopCurrent() {
 }
 
 function reorderClips(sourceFile, targetFile) {
-  const fromIndex = clips.findIndex((clip) => clip.file === sourceFile);
-  const toIndex = clips.findIndex((clip) => clip.file === targetFile);
+  const fromIndex = clips.findIndex((clip) => clip.id === sourceFile);
+  const toIndex = clips.findIndex((clip) => clip.id === targetFile);
   if (fromIndex === -1 || toIndex === -1) return;
 
   const [moved] = clips.splice(fromIndex, 1);
@@ -228,4 +219,88 @@ searchInput.addEventListener("input", () => {
   applySearch(searchInput.value);
 });
 
-loadManifest();
+async function ensureSession(interactive = false) {
+  try {
+    currentUser = await account.get();
+    signInButton.textContent = `Signed in as ${currentUser.email}`;
+    return currentUser;
+  } catch (error) {
+    if (!interactive) return null;
+    await account.createOAuth2Session("google", window.location.origin, window.location.origin);
+    return null;
+  }
+}
+
+async function loadFromAppwrite() {
+  try {
+    const user = await ensureSession(false);
+    if (!user) {
+      setStatus("Sign in to load your sounds");
+      clips = [];
+      filteredClips = [];
+      render();
+      return;
+    }
+
+    const { documents } = await databases.listDocuments(DB_ID, TABLE_ID, [Query.orderDesc("$createdAt")]);
+    clips = applySavedOrder(
+      documents
+        .filter((doc) => (doc.$permissions || []).some((p) => p.includes(`user:${user.$id}`)))
+        .map((doc) => ({
+          id: doc.$id,
+          title: doc.name || humanize(doc.fileId || "Clip"),
+          url: storage.getFileView(BUCKET_ID, doc.fileId),
+          size: doc.size,
+        }))
+    );
+    applySearch("");
+    setStatus(clips.length ? `Loaded ${clips.length} clip(s)` : "No clips yet. Upload one to get started.");
+  } catch (error) {
+    setStatus(`Could not load sounds (${error.message})`);
+    render();
+  }
+}
+
+async function handleUpload() {
+  const file = fileInput.files?.[0];
+  if (!file) {
+    setStatus("Select an audio file to upload");
+    return;
+  }
+  uploadButton.disabled = true;
+  setStatus("Uploading…");
+  try {
+    const user = await ensureSession(true);
+    if (!user) return;
+
+    const perms = [Permission.read(Role.user(user.$id)), Permission.write(Role.user(user.$id))];
+    const uploaded = await storage.createFile(BUCKET_ID, ID.unique(), file, perms);
+    await databases.createDocument(
+      DB_ID,
+      TABLE_ID,
+      ID.unique(),
+      {
+        name: file.name,
+        fileId: uploaded.$id,
+        size: file.size,
+        mimeType: file.type || null,
+      },
+      perms
+    );
+    setStatus("Upload complete");
+    fileInput.value = "";
+    await loadFromAppwrite();
+  } catch (error) {
+    setStatus(`Upload failed (${error.message})`);
+  } finally {
+    uploadButton.disabled = false;
+  }
+}
+
+signInButton.addEventListener("click", () => {
+  ensureSession(true);
+});
+
+uploadButton.addEventListener("click", handleUpload);
+
+loadFromAppwrite();
