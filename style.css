@@ -144,35 +144,6 @@ code {
   font-size: 14px;
 }
 
-.player {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin: 0 0 18px;
-  box-shadow: var(--shadow);
-}
-
-.player-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.player-title {
-  font-weight: 700;
-  color: var(--text);
-}
-
-.player-seek {
-  width: 100%;
-  accent-color: var(--accent);
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
