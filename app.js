@@ -27,6 +27,9 @@ const signOutButton = document.getElementById("sign-out");
 const fileInput = document.getElementById("file-input");
 const uploadButton = document.getElementById("upload");
 const userStatus = document.getElementById("user-status");
+const userSubstatus = document.getElementById("user-substatus");
+const userAvatar = document.getElementById("user-avatar");
+const controls = [fileInput, uploadButton];
 
 let clips = [];
 let filteredClips = [];
@@ -47,11 +50,30 @@ function setStatus(message) {
 
 function setUserStatus(user) {
   if (user) {
-    userStatus.textContent = `Signed in as ${user.email || user.name || user.$id}`;
+    const label = user.name || user.email || user.$id;
+    userStatus.textContent = label;
+    userSubstatus.textContent = "Uploads and library unlocked.";
     signInButton.textContent = "Re-auth Google";
+    signOutButton.classList.remove("hidden");
+    const initials = label
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+    userAvatar.textContent = initials || "SB";
+    controls.forEach((el) => {
+      el.disabled = false;
+    });
   } else {
     userStatus.textContent = "Not signed in";
+    userSubstatus.textContent = "Sign in to upload your sounds.";
     signInButton.textContent = "Sign in with Google";
+    signOutButton.classList.add("hidden");
+    userAvatar.textContent = "SB";
+    controls.forEach((el) => {
+      el.disabled = true;
+    });
   }
 }
 
@@ -280,6 +302,10 @@ async function handleUpload() {
   const file = fileInput.files?.[0];
   if (!file) {
     setStatus("Select an audio file to upload");
+    return;
+  }
+  if (!currentUser) {
+    setStatus("Sign in first to upload");
     return;
   }
   uploadButton.disabled = true;

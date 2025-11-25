@@ -11,6 +11,20 @@
 </head>
 <body>
   <div class="app">
+    <div class="topbar">
+      <div class="user-pill">
+        <div id="user-avatar" class="avatar">SB</div>
+        <div class="user-lines">
+          <p id="user-status" class="user-name">Not signed in</p>
+          <p id="user-substatus" class="user-sub">Sign in to upload your sounds.</p>
+        </div>
+      </div>
+      <div class="auth-actions">
+        <button id="sign-in" class="btn primary" type="button">Sign in with Google</button>
+        <button id="sign-out" class="btn ghost" type="button">Sign out</button>
+      </div>
+    </div>
+
     <header class="hero">
       <div>
         <p class="eyebrow">Soundboard</p>
@@ -33,9 +47,6 @@
     </section>
 
     <section class="controls">
-      <span id="user-status" class="status"></span>
-      <button id="sign-in" type="button">Sign in with Google</button>
-      <button id="sign-out" type="button">Sign out</button>
       <input id="file-input" type="file" accept="audio/*">
       <button id="upload" type="button">Upload</button>
     </section>
