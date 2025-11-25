@@ -318,6 +318,10 @@ signInButton.addEventListener("click", () => {
 
 signOutButton.addEventListener("click", async () => {
   try {
+    if (!currentUser) {
+      setStatus("Not signed in");
+      return;
+    }
     await account.deleteSession("current");
     currentUser = null;
     setUserStatus(null);
