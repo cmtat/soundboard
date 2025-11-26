@@ -168,6 +168,23 @@ function render() {
     title.className = "title";
     title.textContent = clip.title;
 
+    const header = document.createElement("div");
+    header.className = "card-header";
+    header.appendChild(title);
+
+    if (isEditing) {
+      const renameButton = document.createElement("button");
+      renameButton.type = "button";
+      renameButton.className = "rename-btn";
+      renameButton.textContent = "Rename";
+      renameButton.setAttribute("aria-label", `Rename ${clip.title}`);
+      renameButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        promptRename(clip);
+      });
+      header.appendChild(renameButton);
+    }
+
     const meta = document.createElement("p");
     meta.className = "meta";
     meta.textContent = clip.size ? `${formatBytes(clip.size)} • Uploaded` : "Uploaded clip";
@@ -178,7 +195,7 @@ function render() {
     button.textContent = "Play";
     button.addEventListener("click", () => handlePlay(card, clip));
 
-    card.appendChild(title);
+    card.appendChild(header);
     card.appendChild(meta);
     card.appendChild(button);
 
@@ -325,6 +342,33 @@ async function deleteClip(clip) {
     setStatus(`Removed ${clip.title}`);
   } catch (error) {
     setStatus(`Could not remove ${clip.title} (${error.message})`);
+  }
+}
+
+function promptRename(clip) {
+  const nextTitle = window.prompt(`Rename "${clip.title}"`, clip.title);
+  if (nextTitle === null) return;
+  const trimmed = nextTitle.trim();
+  if (!trimmed || trimmed === clip.title) return;
+  renameClip(clip, trimmed);
+}
+
+async function renameClip(clip, newTitle) {
+  if (!currentUser) {
+    setStatus("Sign in to manage your sounds");
+    return;
+  }
+  try {
+    await ensureSession(true);
+    setStatus(`Renaming ${clip.title}…`);
+    await databases.updateDocument(DB_ID, TABLE_ID, clip.id, { name: newTitle });
+    clips = clips.map((c) => (c.id === clip.id ? { ...c, title: newTitle } : c));
+    filteredClips = filteredClips.map((c) => (c.id === clip.id ? { ...c, title: newTitle } : c));
+    persistOrder(clips);
+    render();
+    setStatus(`Renamed to ${newTitle}`);
+  } catch (error) {
+    setStatus(`Could not rename ${clip.title} (${error.message})`);
   }
 }
 
