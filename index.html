@@ -40,12 +40,16 @@
     <section class="controls">
       <input id="search" type="search" placeholder="Search clips…" autocomplete="off" aria-label="Search clips">
       <div id="status" class="status">Loading clips…</div>
+      <button id="edit-toggle" class="btn ghost" type="button">Edit library</button>
     </section>
 
     <section class="controls upload-controls">
-      <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Drop audio files or click to browse">
-        <p>Drag & drop audio here or click to browse</p>
-        <input id="file-input" type="file" accept="audio/*" aria-hidden="true">
+      <div class="drop-zone-wrapper">
+        <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Drop audio files or click to browse">
+          <p>Drag & drop audio here or click to browse</p>
+          <input id="file-input" type="file" accept="audio/*" aria-hidden="true">
+        </div>
+        <p id="reorder-hint" class="reorder-hint" aria-live="polite">Drag to reorder</p>
       </div>
       <button id="upload" type="button" class="btn primary">Upload</button>
     </section>

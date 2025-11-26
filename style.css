@@ -4,6 +4,7 @@
   --card: rgba(255, 255, 255, 0.08);
   --card-hover: rgba(255, 255, 255, 0.15);
   --accent: #ff7a3d;
+  --danger: #ff6b7d;
   --text: #e8f0ff;
   --muted: #b7c9e2;
   --border: rgba(255, 255, 255, 0.1);
@@ -219,6 +220,13 @@ code {
   align-items: stretch;
 }
 
+.drop-zone-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 #search {
   flex: 1;
   padding: 12px 14px;
@@ -276,6 +284,19 @@ code {
   pointer-events: none;
 }
 
+.reorder-hint {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+  display: none;
+  text-align: center;
+}
+
+.reorder-hint.visible {
+  display: block;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -294,6 +315,7 @@ code {
   box-shadow: var(--shadow);
   transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
   height: 100%;
+  position: relative;
 }
 
 .card:hover {
@@ -302,7 +324,7 @@ code {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-.card button {
+.card .play-btn {
   background: var(--accent);
   border: none;
   color: #0c1a24;
@@ -316,11 +338,11 @@ code {
   width: 100%;
 }
 
-.card button:hover {
+.card .play-btn:hover {
   transform: translateY(-1px);
 }
 
-.card button:active {
+.card .play-btn:active {
   transform: translateY(0);
 }
 
@@ -344,6 +366,35 @@ code {
 .card.dragging {
   opacity: 0.65;
   transform: scale(0.99);
+}
+
+.card .delete-chip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.card .delete-chip:hover {
+  background: rgba(255, 107, 125, 0.18);
+  border-color: rgba(255, 107, 125, 0.5);
+  color: #ffe7eb;
+  transform: scale(1.05);
+}
+
+.card .delete-chip:active {
+  transform: scale(0.98);
 }
 
 .empty {
