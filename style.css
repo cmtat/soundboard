@@ -4,6 +4,7 @@
   --card: rgba(255, 255, 255, 0.08);
   --card-hover: rgba(255, 255, 255, 0.15);
   --accent: #ff7a3d;
+  --danger: #ff6b7d;
   --text: #e8f0ff;
   --muted: #b7c9e2;
   --border: rgba(255, 255, 255, 0.1);
@@ -302,7 +303,7 @@ code {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-.card button {
+.card .play-btn {
   background: var(--accent);
   border: none;
   color: #0c1a24;
@@ -316,11 +317,11 @@ code {
   width: 100%;
 }
 
-.card button:hover {
+.card .play-btn:hover {
   transform: translateY(-1px);
 }
 
-.card button:active {
+.card .play-btn:active {
   transform: translateY(0);
 }
 
@@ -344,6 +345,56 @@ code {
 .card.dragging {
   opacity: 0.65;
   transform: scale(0.99);
+}
+
+.card .manage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.drag-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.drag-hint::before {
+  content: "⇅";
+  display: inline-block;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.card .delete-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--danger);
+  box-shadow: none;
+  padding: 10px 14px;
+  width: auto;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.card .delete-btn:hover {
+  background: rgba(255, 107, 125, 0.12);
+  border-color: rgba(255, 107, 125, 0.45);
+  color: #ffdce3;
+}
+
+.card .delete-btn:active {
+  transform: translateY(0);
 }
 
 .empty {

@@ -28,10 +28,11 @@ const signOutButton = document.getElementById("sign-out");
 const fileInput = document.getElementById("file-input");
 const uploadButton = document.getElementById("upload");
 const dropZone = document.getElementById("drop-zone");
+const editToggle = document.getElementById("edit-toggle");
 const userStatus = document.getElementById("user-status");
 const userSubstatus = document.getElementById("user-substatus");
 const userAvatar = document.getElementById("user-avatar");
-const controls = [fileInput, uploadButton];
+const controls = [fileInput, uploadButton, editToggle];
 
 let clips = [];
 let filteredClips = [];
@@ -39,12 +40,20 @@ let currentAudio = null;
 let currentId = null;
 let draggingFile = null;
 let currentUser = null;
+let isEditing = false;
 
 const humanize = (fileName) =>
   fileName
     .replace(/\.[^/.]+$/, "")
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
+
+const formatBytes = (bytes) => {
+  if (!bytes && bytes !== 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
 
 function setStatus(message) {
   statusEl.textContent = message;
@@ -86,6 +95,18 @@ function setUserStatus(user) {
     controls.forEach((el) => {
       el.disabled = true;
     });
+    setEditing(false);
+  }
+}
+
+function setEditing(enabled) {
+  isEditing = !!enabled;
+  editToggle.textContent = isEditing ? "Done" : "Edit library";
+  editToggle.setAttribute("aria-pressed", String(isEditing));
+  grid.classList.toggle("editing", isEditing);
+  render();
+  if (isEditing) {
+    setStatus("Drag clips to reorder or remove uploads.");
   }
 }
 
@@ -139,22 +160,49 @@ function render() {
     card.className = "card";
     card.dataset.clipId = `${index}`;
     card.dataset.file = clip.id;
-    card.setAttribute("draggable", "true");
+    card.setAttribute("draggable", isEditing ? "true" : "false");
 
     const title = document.createElement("p");
     title.className = "title";
     title.textContent = clip.title;
 
+    const meta = document.createElement("p");
+    meta.className = "meta";
+    meta.textContent = clip.size ? `${formatBytes(clip.size)} • Uploaded` : "Uploaded clip";
+
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "play-btn";
     button.textContent = "Play";
     button.addEventListener("click", () => handlePlay(card, clip));
 
     card.appendChild(title);
+    card.appendChild(meta);
     card.appendChild(button);
+
+    if (isEditing) {
+      const manageRow = document.createElement("div");
+      manageRow.className = "manage-row";
+
+      const dragHint = document.createElement("span");
+      dragHint.className = "drag-hint";
+      dragHint.textContent = "Drag to reorder";
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "delete-btn";
+      deleteButton.textContent = "Remove";
+      deleteButton.addEventListener("click", () => confirmDelete(clip));
+
+      manageRow.appendChild(dragHint);
+      manageRow.appendChild(deleteButton);
+      card.appendChild(manageRow);
+    }
+
     grid.appendChild(card);
 
     card.addEventListener("dragstart", (event) => {
+      if (!isEditing) return;
       draggingFile = clip.id;
       event.dataTransfer.effectAllowed = "move";
       card.classList.add("dragging");
@@ -166,11 +214,13 @@ function render() {
     });
 
     card.addEventListener("dragover", (event) => {
+      if (!isEditing) return;
       event.preventDefault();
       event.dataTransfer.dropEffect = "move";
     });
 
     card.addEventListener("drop", (event) => {
+      if (!isEditing) return;
       event.preventDefault();
       if (!draggingFile || draggingFile === clip.id) return;
       reorderClips(draggingFile, clip.id);
@@ -218,17 +268,17 @@ function setPlaying(card, isPlaying) {
   document.querySelectorAll(".card.playing").forEach((el) => {
     if (el !== card) {
       el.classList.remove("playing");
-      const btn = el.querySelector("button");
+      const btn = el.querySelector(".play-btn");
       if (btn) btn.textContent = "Play";
     }
   });
 
   if (isPlaying) {
     card.classList.add("playing");
-    card.querySelector("button").textContent = "Pause";
+    card.querySelector(".play-btn").textContent = "Pause";
   } else {
     card.classList.remove("playing");
-    card.querySelector("button").textContent = "Play";
+    card.querySelector(".play-btn").textContent = "Play";
   }
 }
 
@@ -252,6 +302,37 @@ function reorderClips(sourceFile, targetFile) {
   clips.splice(toIndex, 0, moved);
   persistOrder(clips);
   applySearch(searchInput.value);
+}
+
+async function confirmDelete(clip) {
+  const confirmed = window.confirm(`Remove "${clip.title}" from your uploads?`);
+  if (!confirmed) return;
+  await deleteClip(clip);
+}
+
+async function deleteClip(clip) {
+  if (!currentUser) {
+    setStatus("Sign in to manage your sounds");
+    return;
+  }
+
+  try {
+    await ensureSession(true);
+    setStatus(`Removing ${clip.title}…`);
+    await databases.deleteDocument(DB_ID, TABLE_ID, clip.id);
+    try {
+      await storage.deleteFile(BUCKET_ID, clip.fileId);
+    } catch (storageError) {
+      console.warn("File delete failed", storageError);
+    }
+    clips = clips.filter((c) => c.id !== clip.id);
+    filteredClips = filteredClips.filter((c) => c.id !== clip.id);
+    persistOrder(clips);
+    render();
+    setStatus(`Removed ${clip.title}`);
+  } catch (error) {
+    setStatus(`Could not remove ${clip.title} (${error.message})`);
+  }
 }
 
 function applySearch(term) {
@@ -307,6 +388,7 @@ async function loadFromAppwrite() {
           id: doc.$id,
           title: doc.name || humanize(doc.fileId || "Clip"),
           url: storage.getFileView(BUCKET_ID, doc.fileId),
+          fileId: doc.fileId,
           size: doc.size,
         }))
     );
@@ -379,6 +461,7 @@ signOutButton.addEventListener("click", async () => {
     await account.deleteSession("current");
     currentUser = null;
     setUserStatus(null);
+    setEditing(false);
     clips = [];
     filteredClips = [];
     render();
@@ -424,6 +507,14 @@ dropZone.addEventListener("drop", (event) => {
   const file = event.dataTransfer?.files?.[0];
   if (!file) return;
   handleUpload(file);
+});
+
+editToggle.addEventListener("click", () => {
+  if (!currentUser) {
+    setStatus("Sign in to manage your sounds");
+    return;
+  }
+  setEditing(!isEditing);
 });
 
 setUserStatus(null);
