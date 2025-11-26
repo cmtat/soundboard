@@ -29,6 +29,7 @@ const fileInput = document.getElementById("file-input");
 const uploadButton = document.getElementById("upload");
 const dropZone = document.getElementById("drop-zone");
 const editToggle = document.getElementById("edit-toggle");
+const reorderHint = document.getElementById("reorder-hint");
 const userStatus = document.getElementById("user-status");
 const userSubstatus = document.getElementById("user-substatus");
 const userAvatar = document.getElementById("user-avatar");
@@ -104,6 +105,7 @@ function setEditing(enabled) {
   editToggle.textContent = isEditing ? "Done" : "Edit library";
   editToggle.setAttribute("aria-pressed", String(isEditing));
   grid.classList.toggle("editing", isEditing);
+  reorderHint?.classList.toggle("visible", isEditing);
   render();
   if (isEditing) {
     setStatus("Drag clips to reorder or remove uploads.");
@@ -181,22 +183,13 @@ function render() {
     card.appendChild(button);
 
     if (isEditing) {
-      const manageRow = document.createElement("div");
-      manageRow.className = "manage-row";
-
-      const dragHint = document.createElement("span");
-      dragHint.className = "drag-hint";
-      dragHint.textContent = "Drag to reorder";
-
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
-      deleteButton.className = "delete-btn";
-      deleteButton.textContent = "Remove";
+      deleteButton.className = "delete-chip";
+      deleteButton.setAttribute("aria-label", `Remove ${clip.title}`);
+      deleteButton.textContent = "×";
       deleteButton.addEventListener("click", () => confirmDelete(clip));
-
-      manageRow.appendChild(dragHint);
-      manageRow.appendChild(deleteButton);
-      card.appendChild(manageRow);
+      card.appendChild(deleteButton);
     }
 
     grid.appendChild(card);
