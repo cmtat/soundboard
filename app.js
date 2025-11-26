@@ -16,8 +16,8 @@ client.ping().catch((error) => {
 
 const DB_ID = "soundboard";
 const TABLE_ID = "sounds";
+const ORDER_TABLE_ID = "orders";
 const BUCKET_ID = "sounds";
-const orderStorageKey = "soundboardOrder";
 const grid = document.getElementById("grid");
 const searchInput = document.getElementById("search");
 const statusEl = document.getElementById("status");
@@ -42,6 +42,7 @@ let currentId = null;
 let draggingFile = null;
 let currentUser = null;
 let isEditing = false;
+let remoteOrderCache = null;
 
 const humanize = (fileName) =>
   fileName
@@ -96,6 +97,7 @@ function setUserStatus(user) {
     controls.forEach((el) => {
       el.disabled = true;
     });
+    remoteOrderCache = null;
     setEditing(false);
   }
 }
@@ -112,14 +114,13 @@ function setEditing(enabled) {
   }
 }
 
-function applySavedOrder(list) {
-  const saved = loadSavedOrder();
-  if (!saved || !saved.length) return list;
+function applyOrder(list, orderIds) {
+  if (!orderIds || !orderIds.length) return list;
 
   const map = new Map(list.map((clip) => [clip.id, clip]));
   const ordered = [];
 
-  saved.forEach((id) => {
+  orderIds.forEach((id) => {
     if (map.has(id)) {
       ordered.push(map.get(id));
       map.delete(id);
@@ -131,20 +132,43 @@ function applySavedOrder(list) {
   return ordered.concat(remaining);
 }
 
-function loadSavedOrder() {
+async function loadOrderForUser(userId) {
+  if (!userId) return [];
+  if (remoteOrderCache !== null) return remoteOrderCache;
   try {
-    const raw = localStorage.getItem(orderStorageKey);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
+    const doc = await databases.getDocument(DB_ID, ORDER_TABLE_ID, userId);
+    const orderIds = Array.isArray(doc.order) ? doc.order : [];
+    remoteOrderCache = orderIds;
+    return orderIds;
+  } catch (error) {
+    if (error?.code === 404) {
+      remoteOrderCache = [];
+      return [];
+    }
+    console.warn("Load order failed", error);
+    remoteOrderCache = [];
+    return [];
   }
 }
 
-function persistOrder(list) {
+async function persistOrder(list) {
+  if (!currentUser) return;
+  const orderIds = list.map((clip) => clip.id);
+  remoteOrderCache = orderIds;
   try {
-    localStorage.setItem(orderStorageKey, JSON.stringify(list.map((clip) => clip.id)));
-  } catch {
-    // ignore if storage is unavailable (e.g., private mode)
+    await ensureSession(true);
+    const perms = [Permission.read(Role.user(currentUser.$id)), Permission.write(Role.user(currentUser.$id))];
+    try {
+      await databases.updateDocument(DB_ID, ORDER_TABLE_ID, currentUser.$id, { order: orderIds });
+    } catch (error) {
+      if (error?.code === 404) {
+        await databases.createDocument(DB_ID, ORDER_TABLE_ID, currentUser.$id, { order: orderIds }, perms);
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.warn("Persist order failed", error);
   }
 }
 
@@ -303,14 +327,14 @@ function stopCurrent() {
   });
 }
 
-function reorderClips(sourceFile, targetFile) {
+async function reorderClips(sourceFile, targetFile) {
   const fromIndex = clips.findIndex((clip) => clip.id === sourceFile);
   const toIndex = clips.findIndex((clip) => clip.id === targetFile);
   if (fromIndex === -1 || toIndex === -1) return;
 
   const [moved] = clips.splice(fromIndex, 1);
   clips.splice(toIndex, 0, moved);
-  persistOrder(clips);
+  await persistOrder(clips);
   applySearch(searchInput.value);
 }
 
@@ -337,7 +361,7 @@ async function deleteClip(clip) {
     }
     clips = clips.filter((c) => c.id !== clip.id);
     filteredClips = filteredClips.filter((c) => c.id !== clip.id);
-    persistOrder(clips);
+    await persistOrder(clips);
     render();
     setStatus(`Removed ${clip.title}`);
   } catch (error) {
@@ -364,7 +388,7 @@ async function renameClip(clip, newTitle) {
     await databases.updateDocument(DB_ID, TABLE_ID, clip.id, { name: newTitle });
     clips = clips.map((c) => (c.id === clip.id ? { ...c, title: newTitle } : c));
     filteredClips = filteredClips.map((c) => (c.id === clip.id ? { ...c, title: newTitle } : c));
-    persistOrder(clips);
+    await persistOrder(clips);
     render();
     setStatus(`Renamed to ${newTitle}`);
   } catch (error) {
@@ -418,17 +442,17 @@ async function loadFromAppwrite() {
     }
 
     const { documents } = await databases.listDocuments(DB_ID, TABLE_ID, [Query.orderDesc("$createdAt")]);
-    clips = applySavedOrder(
-      documents
-        .filter((doc) => (doc.$permissions || []).some((p) => p.includes(`user:${user.$id}`)))
-        .map((doc) => ({
-          id: doc.$id,
-          title: doc.name || humanize(doc.fileId || "Clip"),
-          url: storage.getFileView(BUCKET_ID, doc.fileId),
-          fileId: doc.fileId,
-          size: doc.size,
-        }))
-    );
+    const mappedClips = documents
+      .filter((doc) => (doc.$permissions || []).some((p) => p.includes(`user:${user.$id}`)))
+      .map((doc) => ({
+        id: doc.$id,
+        title: doc.name || humanize(doc.fileId || "Clip"),
+        url: storage.getFileView(BUCKET_ID, doc.fileId),
+        fileId: doc.fileId,
+        size: doc.size,
+      }));
+    const orderIds = await loadOrderForUser(user.$id);
+    clips = applyOrder(mappedClips, orderIds);
     applySearch("");
     setStatus(clips.length ? `Loaded ${clips.length} clip(s)` : "No clips yet. Upload one to get started.");
   } catch (error) {
