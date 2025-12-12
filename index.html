@@ -11,25 +11,11 @@
 </head>
 <body>
   <div class="app">
-    <div class="topbar">
-      <div class="user-pill">
-        <div id="user-avatar" class="avatar">SB</div>
-        <div class="user-lines">
-          <p id="user-status" class="user-name">Not signed in</p>
-          <p id="user-substatus" class="user-sub">Sign in to upload your sounds.</p>
-        </div>
-      </div>
-      <div class="auth-actions">
-        <button id="sign-in" class="btn primary" type="button">Sign in with Google</button>
-        <button id="sign-out" class="btn ghost" type="button">Sign out</button>
-      </div>
-    </div>
-
     <header class="hero">
       <div>
         <p class="eyebrow">Soundboard</p>
         <h1>Trigger any clip in a single tap.</h1>
-        <p class="lede">Drop audio files in <code>audio/</code>, update the manifest, and this page will auto-list every clip.</p>
+        <p class="lede">Drop audio files in <code>audio/</code>, regenerate the manifest, and this page will auto-list every clip. No sign-in required.</p>
       </div>
       <div class="stat">
         <p class="label">Now playing</p>
@@ -39,17 +25,13 @@
 
     <section class="controls">
       <input id="search" type="search" placeholder="Search clips…" autocomplete="off" aria-label="Search clips">
+      <button id="reload" type="button" class="btn ghost">Reload library</button>
       <div id="status" class="status">Loading clips…</div>
-      <button id="edit-toggle" class="btn ghost" type="button">Edit library</button>
     </section>
 
-    <section class="controls upload-controls">
-      <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Drop audio files or click to browse">
-        <p>Drag & drop audio here or click to browse</p>
-        <p id="reorder-hint" class="reorder-hint">Drag to reorder</p>
-        <input id="file-input" type="file" accept="audio/*" aria-hidden="true">
-      </div>
-      <button id="upload" type="button" class="btn primary">Upload</button>
+    <section class="info-card" aria-live="polite">
+      <p class="info-title">Manage audio locally</p>
+      <p class="info-body">Add or rename files inside <code>audio/</code> and run <code>node scripts/generate-manifest.js</code> to refresh <code>audio/manifest.json</code>. Commit both the audio files and the manifest when deploying.</p>
     </section>
 
     <section id="grid" class="grid" aria-live="polite"></section>
