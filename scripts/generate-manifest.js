@@ -24,7 +24,14 @@ async function main() {
     clips.push({ file: entry.name, sizeBytes: stats.size });
   }
 
-  clips.sort((a, b) => a.file.localeCompare(b.file));
+  const isPeanut = (name) => /\(peanut\)/i.test(name);
+  clips.sort((a, b) => {
+    const aPeanut = isPeanut(a.file);
+    const bPeanut = isPeanut(b.file);
+    if (aPeanut && !bPeanut) return -1; // Peanut clips first
+    if (!aPeanut && bPeanut) return 1;
+    return a.file.localeCompare(b.file);
+  });
 
   const payload = {
     generatedAt: new Date().toISOString(),
