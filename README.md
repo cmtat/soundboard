@@ -21,6 +21,17 @@ You can preview locally with a simple static server (e.g., `python -m http.serve
 - `app.js` fetches the manifest at load (or when you click "Reload library"), renders a grid, and lets you search, play, and pause clips. Only one clip plays at a time.
 - `style.css` handles the layout and theming tuned for a single-page GitHub Pages deployment.
 
+## Cloudflare Pages setup
+
+This is a static site—no workers or server code are needed. In Cloudflare Pages:
+
+1. Framework preset: **None**.
+2. Build command: `npm run generate` (or leave empty if the manifest is already committed).
+3. Build output directory: `.` (the project root).
+4. Production branch: `main`.
+
+Do **not** set a custom deploy command like `npx wrangler deploy`—that expects a Worker entry point and will fail. Pages will host the static files directly.
+
 ## Updating clips
 
 Any time you add, remove, or rename audio:
