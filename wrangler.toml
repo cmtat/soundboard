@@ -1,0 +1,6 @@
+name = "soundboard"
+compatibility_date = "2025-12-12"
+
+[assets]
+directory = "."
+binding = "ASSETS"
